@@ -6,6 +6,7 @@
 ;; URL: https://github.com/abo-abo/abel
 ;; Version: 0.1.0
 ;; Keywords: lisp
+;; Package-Requires: ((diminish "0.44"))
 
 ;; This file is not part of GNU Emacs
 
@@ -33,6 +34,65 @@
   "abbrevs for Elisp"
   :prefix "abel-")
 
+(defvar abel-mode nil
+  "Determines if Abel is currently active.")
+
+(defun abel-mode (&optional arg)
+  "Minor mode refining `abbrev-mode' for Elisp by adding `abel-abbrevs'."
+  (interactive (list (or current-prefix-arg 'toggle)))
+  (setq abel-mode
+        (if (eq arg 'toggle)
+            (not abel-mode)
+          (> (prefix-numeric-value arg) 0)))
+  (if abel-mode
+      (progn
+        (abbrev-mode 1)
+        (diminish 'abbrev-mode "Abel"))
+    (diminish-undo 'abbrev-mode))
+  (mapc #'abel-define abel-abbrevs))
+
+(defun abel-define (x)
+  "Define an abbrev based on X.
+X should have the format of the elements of `abel-abbrevs'."
+  (let ((name (car x))
+        (body (cadr x)))
+    (define-abbrev emacs-lisp-mode-abbrev-table name
+      abel-mode
+      #'abel-expand
+      :system t
+      :enable-function #'abel-p)
+    (when abel-mode
+      (puthash name body abel--table))
+    (setq abbrevs-changed nil)))
+
+(defvar abel--table (make-hash-table :test #'equal)
+  "Can't trust `abbrev-mode' with our precious expansions.
+Store them here instead.")
+
+(defun abel-p ()
+  "Don't expand in strings, comments and function arguments."
+  (let ((ppss (syntax-ppss)))
+    (unless (or (elt ppss 3) (elt ppss 4))
+      (save-match-data
+        (and (looking-back "([[:alnum:]]*")
+             (save-excursion
+               (goto-char (match-beginning 0))
+               (and (not (looking-back "(lambda *"))
+                    (condition-case nil
+                        (progn
+                          (backward-sexp)
+                          (not (looking-back "(defun *")))
+                      (error t)))))))))
+
+(defun abel-expand ()
+  "Expand the abbrev before point."
+  (let ((pt (point)))
+    (skip-chars-backward "[[:alnum:]]")
+    (let* ((name (buffer-substring-no-properties (point) pt))
+           (body (gethash name abel--table)))
+      (delete-region (point) pt)
+      (insert body))))
+
 (defcustom abel-abbrevs
   '(
     ;; basics
@@ -41,7 +101,6 @@
     ("u" "unless")
     ("w" "when")
     ("r" "require")
-    ("cc" "condition-case")
     ("ci" "call-interactively")
     ("cc" "condition-case")
     ("pg" "plist-get")
@@ -101,7 +160,6 @@
     ("bn" "buffer-name")
     ("bs" "buffer-substring")
     ("bsn" "buffer-substring-no-properties")
-    ("bsnp" "buffer-substring-no-properties")
     ("cb" "current-buffer")
     ("wcb" "with-current-buffer")
     ("wtb" "with-temp-buffer")
@@ -136,82 +194,11 @@
     ("tc" "this-command")
     ("ul" "up-list"))
   "List of (ABBREV EXPANSION) used by `abel'."
-  :set 'abel-update
+  :set (lambda (symbol value)
+         "Update abbrevs accoring to `abel-abbrevs'."
+         (set symbol value)
+         (mapc #'abel-define value))
   :group 'abel)
-
-(defvar abel-mode nil
-  "Determines if Abel is currently active.")
-
-(defun abel-mode (&optional arg)
-  "Minor mode refining `abbrev-mode' for Elisp by adding `abel-abbrevs'."
-  (interactive (list (or current-prefix-arg 'toggle)))
-  (setq abel-mode
-        (if (eq arg 'toggle)
-            (not abel-mode)
-          (> (prefix-numeric-value arg) 0)))
-  (if abel-mode
-      (progn
-        (abbrev-mode 1)
-        (mapc #'abel-define abel-abbrevs)
-        (diminish 'abbrev-mode "Abel"))
-    (mapc #'abel-undefine abel-abbrevs)
-    (diminish-undo 'abbrev-mode)))
-
-(defun abel-update (symbol value)
-  "Update abbrevs accoring to `abel-abbrevs'."
-  (set symbol value)
-  (mapc #'abel-define value))
-
-(defvar abel--table (make-hash-table :test #'equal)
-  "Can't trust `abbrev-mode' with our precious expansions.
-Store them here instead.")
-
-(defun abel-p ()
-  "Don't expand in strings, comments and function arguments."
-  (let ((ppss (syntax-ppss)))
-    (unless (or (elt ppss 3) (elt ppss 4))
-      (save-match-data
-        (and (looking-back "([[:alnum:]]*")
-             (save-excursion
-               (goto-char (match-beginning 0))
-               (and (not (looking-back "(lambda *"))
-                    (condition-case nil
-                        (progn
-                          (backward-sexp)
-                          (not (looking-back "(defun *")))
-                      (error t)))))))))
-
-(defun abel-expand ()
-  "Expand the abbrev before point."
-  (let ((pt (point)))
-    (skip-chars-backward "[[:alnum:]]")
-    (let* ((name (buffer-substring-no-properties (point) pt))
-           (body (gethash name abel--table)))
-      (delete-region (point) pt)
-      (insert body))))
-
-(defun abel-define (x)
-  "Define an abbrev based on X.
-X should have the format of the elements of `abel-abbrevs'."
-  (let ((name (car x))
-        (body (cadr x)))
-    (define-abbrev
-        emacs-lisp-mode-abbrev-table
-        name t #'abel-expand
-        :system t
-        :enable-function #'abel-p)
-    (puthash name body abel--table)
-    (setq abbrevs-changed nil)))
-
-(defun abel-undefine (x)
-  "Disable an abbrev based on X.
-X should have the format of the elements of `abel-abbrevs'."
-  (let ((name (car x))
-        (body (cadr x)))
-    (define-abbrev
-        emacs-lisp-mode-abbrev-table
-        name nil))
-  (setq abbrevs-changed nil))
 
 (provide 'abel)
 
