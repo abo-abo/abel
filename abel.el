@@ -80,8 +80,12 @@ Store them here instead.")
                (and (not (looking-back "(lambda *"))
                     (condition-case nil
                         (progn
+                          (up-list)
                           (backward-sexp)
-                          (not (looking-back "(defun *")))
+                          (not
+                           (or
+                            (looking-at "(defun *")
+                            (looking-back "(let\\*? *"))))
                       (error t)))))))))
 
 (defun abel-expand ()
