@@ -90,7 +90,7 @@ Store them here instead.")
 
 (defun abel-expand ()
   "Expand the abbrev before point."
-  (when (memq (aref (this-command-keys-vector) 0) '(?\ ?\r return))
+  (unless (memq (aref (this-command-keys-vector) 0) '(?- ?+ ?/ ?_))
     (when (looking-at "[])} ]")
       (let ((pt (point)))
         (skip-chars-backward "[[:alnum:]]")
