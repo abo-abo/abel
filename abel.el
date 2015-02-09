@@ -90,12 +90,14 @@ Store them here instead.")
 
 (defun abel-expand ()
   "Expand the abbrev before point."
-  (let ((pt (point)))
-    (skip-chars-backward "[[:alnum:]]")
-    (let* ((name (buffer-substring-no-properties (point) pt))
-           (body (gethash name abel--table)))
-      (delete-region (point) pt)
-      (insert body))))
+  (when (memq (aref (this-command-keys-vector) 0) '(?\ ?\r return))
+    (when (looking-at "[])} ]")
+      (let ((pt (point)))
+        (skip-chars-backward "[[:alnum:]]")
+        (let* ((name (buffer-substring-no-properties (point) pt))
+               (body (gethash name abel--table)))
+          (delete-region (point) pt)
+          (insert body))))))
 
 (defcustom abel-abbrevs
   '(
@@ -201,6 +203,7 @@ Store them here instead.")
     ("ah" "add-hook")
     ("atl" "add-to-list")
     ("bod" "beginning-of-defun")
+    ("bol" "beginning-of-line")
     ("dm" "deactivate-mark")
     ("fs" "forward-sexp")
     ("jos" "just-one-space")
