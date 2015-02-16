@@ -73,20 +73,21 @@ Store them here instead.")
   "Don't expand in strings, comments and function arguments."
   (let ((ppss (syntax-ppss)))
     (unless (or (elt ppss 3) (elt ppss 4))
-      (save-match-data
-        (and (looking-back "([[:alnum:]]*")
-             (save-excursion
-               (goto-char (match-beginning 0))
-               (and (not (looking-back "(lambda *"))
-                    (condition-case nil
-                        (progn
-                          (up-list)
-                          (backward-sexp)
-                          (not
-                           (or
-                            (looking-at "(defun *")
-                            (looking-back "(let\\*? *"))))
-                      (error t)))))))))
+      (or (memq this-command '(expand-abbrev aya-open-line))
+          (save-match-data
+            (and (looking-back "([[:alnum:]]*")
+                 (save-excursion
+                   (goto-char (match-beginning 0))
+                   (and (not (looking-back "(lambda *"))
+                        (condition-case nil
+                            (progn
+                              (up-list)
+                              (backward-sexp)
+                              (not
+                               (or
+                                (looking-at "(defun *")
+                                (looking-back "(let\\*? *"))))
+                          (error t))))))))))
 
 (defun abel-expand ()
   "Expand the abbrev before point."
