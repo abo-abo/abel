@@ -91,6 +91,10 @@ Store them here instead.")
 
 (defun abel-expand ()
   "Expand the abbrev before point."
+  (when (= (length (this-command-keys-vector)) 1)
+    (insert-char (aref (this-command-keys-vector) 0))
+    (undo-boundary)
+    (backward-delete-char 1))
   (unless (memq (aref (this-command-keys-vector) 0) '(?- ?+ ?/ ?_))
     (when (looking-at "[])} ]")
       (let ((pt (point)))
