@@ -71,23 +71,24 @@ Store them here instead.")
 
 (defun abel-p ()
   "Don't expand in strings, comments and function arguments."
-  (let ((ppss (syntax-ppss)))
-    (unless (or (elt ppss 3) (elt ppss 4))
-      (or (memq this-command '(expand-abbrev aya-open-line))
+  (or (memq this-command '(expand-abbrev aya-open-line))
+      (let ((ppss (syntax-ppss)))
+        (unless (or (elt ppss 3) (elt ppss 4))
           (save-match-data
             (and (looking-back "([[:alnum:]]*")
                  (save-excursion
                    (goto-char (match-beginning 0))
-                   (and (not (looking-back "(lambda *"))
-                        (condition-case nil
-                            (progn
-                              (up-list)
-                              (backward-sexp)
-                              (not
-                               (or
-                                (looking-at "(defun *")
-                                (looking-back "(let\\*? *"))))
-                          (error t))))))))))
+                   (and
+                    (not (or (looking-back "(lambda *")
+                             (looking-back "(defun +\\(?:\\sw\\|\\s_\\)+ +")))
+                    (condition-case nil
+                        (progn
+                          (up-list)
+                          (backward-sexp)
+                          (not
+                           (or
+                            (looking-back "(let\\*? *"))))
+                      (error t))))))))))
 
 (defun abel-expand ()
   "Expand the abbrev before point."
