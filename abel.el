@@ -31,7 +31,8 @@
 
 ;;; Code:
 (defgroup abel nil
-  "abbrevs for Elisp"
+  "Abbrevs for Elisp."
+  :group 'abbrev
   :prefix "abel-")
 
 (defvar abel-mode nil
